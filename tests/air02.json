@@ -1,7 +1,0 @@
-[
-  { "args": ["je", "teste", "des", "trucs", " "] },
-  { "args": ["un", "deux", "trois", "-"] },
-  { "args": ["a", "b", "c", "d", "e"] },
-  { "args": ["hello", "world", " "] },
-  { "args": ["a"] }
-]

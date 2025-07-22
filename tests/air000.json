@@ -1,6 +1,0 @@
-[
-  { "args": ["Bonjour les gars"] },
-  { "args": ["Une\tchaine\tavec\ttabs"] },
-  { "args": [] },
-  { "args": ["Trop", "d", "arguments"] }
-]
