@@ -1,0 +1,7 @@
+[
+  { "args": ["Crevette magique dans la mer des étoiles", "la"] },
+  { "args": ["Bonjour les amis", " "] },
+  { "args": ["un:deux:trois", ":"] },
+  { "args": ["1,2,3,4", ","] },
+  { "args": ["Trop", "d", "arguments", "ici"] }
+]

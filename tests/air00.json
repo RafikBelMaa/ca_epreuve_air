@@ -1,0 +1,7 @@
+[
+  { "args": ["Bonjour les gars"] },
+  { "args": ["Un exemple avec\ttabulation"] },
+  { "args": ["Ligne1\nLigne2"] },
+  { "args": [] },
+  { "args": ["Trop", "d", "arguments"] }
+]

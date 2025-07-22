@@ -1,0 +1,7 @@
+[
+  { "args": ["1", "2", "3", "4", "5", "4", "3", "2", "1"] },
+  { "args": ["bonjour", "monsieur", "bonjour"] },
+  { "args": ["a", "b", "c", "b", "a"] },
+  { "args": ["foo", "bar", "foo"] },
+  { "args": ["a"] }
+]

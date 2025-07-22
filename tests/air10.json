@@ -1,0 +1,7 @@
+[
+  { "args": ["a.txt"] },
+  { "args": ["existant.txt"] },
+  { "args": ["fichier_inexistant.txt"] },
+  { "args": ["lorem.txt"] },
+  { "args": [] }
+]

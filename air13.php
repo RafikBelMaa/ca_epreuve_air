@@ -1,75 +1,290 @@
 <?php
 
-// Utilitaire
+// ==========================
+// Bloc Utilitaire
+// ==========================
 
+// Lance les tests pour tous les exercices PHP présents dans le dossier courant
+function runTestsForAllExercises()
+{
+  // Récupère la liste des fichiers d'exercices PHP
+  $exerciseFiles = getExerciseFileNames();
+  $totalSuccess = 0; // compteur succès global
+  $totalTests = 0;   // compteur total global
 
-// Error handling
+  // Parcourt tous les fichiers d'exercices
+  for ($i = 0; $i < count($exerciseFiles); $i++) {
+    $fileName = $exerciseFiles[$i];
+    // Lance tous les tests pour un exercice donné
+    list($successCount, $testCount) = runTestsForSingleExercise($fileName);
+
+    // Cumule les résultats
+    $totalSuccess += $successCount;
+    $totalTests += $testCount;
+  }
+
+  // Affiche le résumé final des tests
+  displayFinalSummary($totalSuccess, $totalTests);
+}
+
+// Lance tous les tests pour un exercice donné
+function runTestsForSingleExercise($exerciseFileName)
+{
+  // Charge les cas de tests depuis le fichier JSON
+  $testCases = loadTestCasesFromJson($exerciseFileName);
+  $successCount = 0;         // compteur succès pour cet exercice
+  $totalCount = count($testCases); // total des tests pour cet exercice
+
+  // Pour chaque cas de test
+  for ($i = 0; $i < $totalCount; $i++) {
+    $args = $testCases[$i];
+    // Exécute le script avec les arguments
+    $output = executeExerciseScript($exerciseFileName, $args);
+    // Vérifie si le test a échoué (sortie contenant 'error')
+    $isFailure = isTestFailure($output);
+
+    $testIndex = $i + 1;
+    // Prépare le label pour affichage
+    $label = getBaseFileName($exerciseFileName) . " ($testIndex/$totalCount) : ";
+
+    // Affiche success en vert ou failure en rouge
+    if (!$isFailure) {
+      echo $label . "\033[32msuccess\033[0m\n";
+      $successCount++;
+    } else {
+      echo $label . "\033[31mfailure\033[0m\n";
+      // Affiche la sortie brute pour debug
+      echo ">> Output: $output\n";
+    }
+  }
+
+  // Retourne le nombre de succès et total des tests pour cet exercice
+  return array($successCount, $totalCount);
+}
+
+// Affiche le résumé final des résultats
+function displayFinalSummary($successCount, $totalCount)
+{
+  echo "\nTotal success: \033[32m($successCount/$totalCount)\033[0m\n";
+}
+
+// Retourne true si la sortie contient la chaîne 'error'
+function isTestFailure($output)
+{
+  return containsSubstring($output, 'error');
+}
+
+// Exécute un script PHP avec arguments, retourne la sortie nettoyée
+function executeExerciseScript($fileName, $args)
+{
+  $command = "php " . $fileName;
+
+  // Ajoute les arguments tels quels, sans échappement
+  for ($i = 0; $i < count($args); $i++) {
+    $command .= " " . $args[$i];
+  }
+
+  // Exécute la commande et récupère la sortie
+  $output = shell_exec($command);
+
+  // Supprime espaces et retours à la ligne superflus
+  return trim($output);
+}
+
+// Charge les cas de tests depuis le fichier JSON associé à un exercice
+function loadTestCasesFromJson($exerciseFileName)
+{
+  $testCases = array();
+  $baseName = getBaseFileName($exerciseFileName);
+  $jsonPath = 'tests/' . $baseName . '.json';
+
+  // Si le fichier JSON n'existe pas, on retourne un tableau vide
+  if (!file_exists($jsonPath)) {
+    return $testCases;
+  }
+
+  // Lit le contenu du fichier
+  $content = file_get_contents($jsonPath);
+  // Sépare le contenu en lignes
+  $lines = explode("\n", $content);
+
+  // Parcourt chaque ligne pour extraire les arguments
+  for ($i = 0; $i < count($lines); $i++) {
+    $line = $lines[$i];
+
+    // Cherche la ligne contenant "args"
+    if (containsSubstring($line, '"args"')) {
+      // Extrait le tableau d'arguments de la ligne
+      $args = extractArgumentsArray($line);
+      // Ajoute les arguments au tableau des cas de test
+      $testCases[] = $args;
+    }
+  }
+
+  return $testCases;
+}
+
+// Extrait un tableau d'arguments d'une ligne JSON contenant "args"
+function extractArgumentsArray($line)
+{
+  $isInsideBrackets = false;
+  $substring = '';
+
+  // Cherche la partie entre crochets [...]
+  for ($i = 0; $i < strlen($line); $i++) {
+    $char = $line[$i];
+    if ($char === '[') {
+      $isInsideBrackets = true;
+      continue;
+    }
+    if ($char === ']') {
+      $isInsideBrackets = false;
+      break;
+    }
+    if ($isInsideBrackets) {
+      $substring .= $char;
+    }
+  }
+
+  // Supprime les guillemets doubles "
+  $clean = '';
+  for ($i = 0; $i < strlen($substring); $i++) {
+    if ($substring[$i] !== '"') {
+      $clean .= $substring[$i];
+    }
+  }
+
+  // Sépare la chaîne par des virgules en arguments individuels
+  $args = array();
+  $current = '';
+  for ($i = 0; $i < strlen($clean); $i++) {
+    if ($clean[$i] === ',') {
+      $args[] = trim($current);
+      $current = '';
+    } else {
+      $current .= $clean[$i];
+    }
+  }
+  $args[] = trim($current); // ajoute le dernier argument
+
+  return $args;
+}
+
+// Lit un fichier texte ligne par ligne et retourne un tableau de lignes nettoyées
+function readFileLines($fileName)
+{
+  $lines = array();
+  $handle = fopen($fileName, "r");
+
+  if (!$handle) {
+    return $lines;
+  }
+
+  while (!feof($handle)) {
+    $line = fgets($handle);
+    if ($line !== false) {
+      $lines[] = trim($line);
+    }
+  }
+
+  fclose($handle);
+  return $lines;
+}
+
+// Retourne le nom du fichier sans son extension
+function getBaseFileName($fileName)
+{
+  $baseName = '';
+  $length = strlen($fileName);
+
+  for ($i = 0; $i < $length; $i++) {
+    if ($fileName[$i] === '.') {
+      break;
+    }
+    $baseName .= $fileName[$i];
+  }
+
+  return $baseName;
+}
+
+// Retourne la liste des fichiers PHP des exercices à tester
+function getExerciseFileNames()
+{
+  $result = [];
+  $files = scandir('.');
+
+  for ($i = 0; $i < count($files); $i++) {
+    $currentFile = $files[$i];
+    // On ne prend que les fichiers PHP
+    if (!containsSubstring($currentFile, '.php')) {
+      continue;
+    }
+    // On exclut le runner et le loader éventuel
+    if ($currentFile === 'air13.php' || $currentFile === 'test_loader.php') {
+      continue;
+    }
+    $result[] = $currentFile;
+  }
+
+  return $result;
+}
+
+// Cherche si $subString est présent dans $mainString
+function containsSubstring($mainString, $subString)
+{
+  $mainLength = strlen($mainString);
+  $subLength = strlen($subString);
+  $position = 0;
+
+  while ($position <= $mainLength - $subLength) {
+    $isMatch = true;
+    for ($i = 0; $i < $subLength; $i++) {
+      if ($mainString[$position + $i] !== $subString[$i]) {
+        $isMatch = false;
+        break;
+      }
+    }
+    if ($isMatch) {
+      return true;
+    }
+    $position++;
+  }
+
+  return false;
+}
+
+// ==========================
+// Bloc Error Handling
+// ==========================
 
 function showError()
 {
   echo "error\n";
-  exit;
+  exit(1);
 }
 
-// Parsing
-function loadTests()
+// ==========================
+// Bloc Parsing
+// ==========================
+
+// Vide pour l’instant
+
+
+// ==========================
+// Bloc Resolution
+// ==========================
+
+function resolution()
 {
-  return [
-
-    // 🟢 air00 — split avec séparateurs multiples
-    ['file' => 'air00.php', 'args' => ['bonjour', 'les', 'amis', ','], 'expected' => "bonjour\nles\namis"],
-    ['file' => 'air00.php', 'args' => ['je', 'suis', 'ici', '.'], 'expected' => "je\nsuis\nici"],
-
-    // 🔴 air01 — split avec sous-chaîne
-    ['file' => 'air01.php', 'args' => ['Hello<SEP>World<SEP>!', '<SEP>'], 'expected' => "Hello\nWorld\n!"],
-    ['file' => 'air01.php', 'args' => ['unDEUXtroisDEUXquatre', 'DEUX'], 'expected' => "un\ntrois\nquatre"],
-
-    // 🟢 air02 — join
-    ['file' => 'air02.php', 'args' => ['je', 'suis', 'beau', '_'], 'expected' => "je_suis_beau"],
-    ['file' => 'air02.php', 'args' => ['1', '2', '3', '4', '-'], 'expected' => "1-2-3-4"],
-
-    // 🔴 air03 — valeur sans paire
-    ['file' => 'air03.php', 'args' => ['bonjour', 'salut', 'bonjour'], 'expected' => "salut"],
-    ['file' => 'air03.php', 'args' => ['1', '2', '3', '2', '1'], 'expected' => "3"],
-
-    // 🟢 air04 — supprime doublons adjacents
-    ['file' => 'air04.php', 'args' => ['Hello   world'], 'expected' => "Helo world"],
-    ['file' => 'air04.php', 'args' => ['aaabbbcccaaa'], 'expected' => "abca"],
-
-    // 🔴 air05 — opération sur liste
-    ['file' => 'air05.php', 'args' => ['1', '2', '3', '4', '5', '+2'], 'expected' => "3 4 5 6 7"],
-    ['file' => 'air05.php', 'args' => ['10', '20', '30', '*2'], 'expected' => "20 40 60"],
-
-    // 🟢 air06 — filtre
-    ['file' => 'air06.php', 'args' => ['Michel', 'Albert', 'Thérèse', 'Benoit', 't'], 'expected' => "Michel,Albert,Thérèse,"],
-    ['file' => 'air06.php', 'args' => ['Rafik', 'Émile', 'Lucas', 'Sofiane', 'z'], 'expected' => "Rafik,Émile,Lucas,Sofiane,"],
-
-    // 🔴 air07 — insertion dans liste triée
-    ['file' => 'air07.php', 'args' => ['1', '3', '5', '4'], 'expected' => "1\n3\n4\n5\n"],
-    ['file' => 'air07.php', 'args' => ['10', '20', '30', '25'], 'expected' => "10\n20\n25\n30\n"],
-
-    // 🟢 air08 — fusion
-    ['file' => 'air08.php', 'args' => ['1', '2', '3', 'fusion', '4', '5', '6'], 'expected' => "1\n2\n3\n4\n5\n6\n"],
-    ['file' => 'air08.php', 'args' => ['10', '30', 'fusion', '15', '25'], 'expected' => "10\n15\n25\n30\n"],
-
-    // 🔴 air09 — rotation
-    ['file' => 'air09.php', 'args' => ['un', 'deux', 'trois'], 'expected' => "Rotation Numéro :  1 deux, trois, un\nRotation Numéro :  2 trois, un, deux\n"],
-    ['file' => 'air09.php', 'args' => ['Michel', 'Albert', 'Thérèse', 'Benoit'], 'expected' => "Rotation Numéro :  1 Albert, Thérèse, Benoit, Michel\nRotation Numéro :  2 Thérèse, Benoit, Michel, Albert\nRotation Numéro :  3 Benoit, Michel, Albert, Thérèse\n"],
-
-    // 🟢 air10 — lecture fichier (attention à adapter en local !)
-    ['file' => 'air10.php', 'args' => ['air10_test.txt'], 'expected' => "je suis un test\n"],
-
-    // 🔴 air11 — escalier
-    ['file' => 'air11.php', 'args' => ['O', '3'], 'expected' => "  O\n OOO\nOOOOO\n"],
-
-    // 🟢 air12 — quick sort
-    ['file' => 'air12.php', 'args' => ['6', '5', '4', '3', '2', '1'], 'expected' => "1 2 3 4 5 6"],
-    ['file' => 'air12.php', 'args' => ['9', '7', '8', '10'], 'expected' => "7 8 9 10"],
-  ];
+  runTestsForAllExercises();
 }
 
+// ==========================
+// Bloc Affichage
+// ==========================
 
-// resolution
+// Vide, les affichages sont dans les fonctions utilitaires
 
 
-// Affichage
+// Lancement principal
+resolution();

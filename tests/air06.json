@@ -1,0 +1,6 @@
+[
+  { "args": ["Michel", "Albert", "Thérèse", "Benoit", "t"] },
+  { "args": ["Michel", "Albert", "Thérèse", "Benoit", "a"] },
+  { "args": ["Michel", "Albert", "Thérèse"] },
+  { "args": ["Michel"] }
+]
